@@ -114,3 +114,93 @@ export function toolResultMessage(callId: string, content: string): ChatMessage 
     content,
   };
 }
+
+/**
+ * 流式调用模型(OpenAI SSE 协议)。onDelta 收到内容增量,tool_calls 增量累积后返回。
+ * 兼容非流式端点(响应不是 SSE 时回退为一次性 JSON)。
+ */
+export async function chatStream(
+  cfg: LlmConfig,
+  messages: ChatMessage[],
+  tools: unknown[],
+  onDelta: (text: string) => void,
+  signal?: AbortSignal,
+): Promise<AssistantReply> {
+  const url = `${cfg.baseURL.replace(/\/$/, '')}/chat/completions`;
+  const body: Record<string, unknown> = {
+    model: cfg.model,
+    messages: messages.map(toWire),
+    stream: true,
+  };
+  if (tools && tools.length > 0) body.tools = tools;
+
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (cfg.apiKey) headers.Authorization = `Bearer ${cfg.apiKey}`;
+
+  const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`LLM 请求失败 (${res.status}): ${text.slice(0, 300)}`);
+  }
+
+  const contentType = res.headers.get('content-type') ?? '';
+  if (!contentType.includes('text/event-stream')) {
+    // 非 SSE 端点(如部分本地代理):一次读 JSON
+    const data = (await res.json()) as { choices?: { message?: { content?: string | null; tool_calls?: unknown[] } }[] };
+    const msg = data.choices?.[0]?.message;
+    if (!msg) return { content: null, toolCalls: [] };
+    const toolCalls: ToolCall[] = Array.isArray(msg.tool_calls)
+      ? msg.tool_calls.map((tc: any) => ({
+          id: String(tc.id ?? `call-${Math.random().toString(36).slice(2)}`),
+          name: String(tc.function?.name ?? ''),
+          arguments: String(tc.function?.arguments ?? '{}'),
+        })).filter((tc) => tc.name)
+      : [];
+    const content = msg.content ?? null;
+    if (content) onDelta(content);
+    return { content, toolCalls };
+  }
+
+  // SSE 解析
+  const reader = res.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let content = '';
+  const toolCalls: ToolCall[] = [];
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+    for (const line of lines) {
+      const t = line.trim();
+      if (!t.startsWith('data:')) continue;
+      const data = t.slice(5).trim();
+      if (!data || data === '[DONE]') continue;
+      try {
+        const obj = JSON.parse(data) as { choices?: { delta?: { content?: string; tool_calls?: any[] } }[] };
+        const delta = obj.choices?.[0]?.delta;
+        if (!delta) continue;
+        if (delta.content) {
+          content += delta.content;
+          onDelta(delta.content);
+        }
+        if (Array.isArray(delta.tool_calls)) {
+          for (const tc of delta.tool_calls) {
+            const idx = tc.index ?? 0;
+            toolCalls[idx] ??= { id: '', name: '', arguments: '' };
+            if (tc.id) toolCalls[idx].id = tc.id;
+            if (tc.function?.name) toolCalls[idx].name += tc.function.name;
+            if (tc.function?.arguments) toolCalls[idx].arguments += tc.function.arguments;
+          }
+        }
+      } catch {
+        // 跳过无法解析的行
+      }
+    }
+  }
+  const finalCalls = toolCalls.filter((tc) => tc && tc.name);
+  return { content: content || null, toolCalls: finalCalls };
+}

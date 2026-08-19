@@ -5,7 +5,7 @@
  * 直到模型不再调用工具。整个过程逐事件写入会话日志(可 --resume 重放)。
  */
 import type { LlmConfig } from './llm.js';
-import { chat, toolResultMessage } from './llm.js';
+import { chatStream, toolResultMessage } from './llm.js';
 import type { ZhiliaoRuntime } from './plugins/runtime.js';
 import type { Session } from './session.js';
 import { toOpenAiTools } from './tools/types.js';
@@ -17,6 +17,8 @@ export interface TurnOptions {
   maxIterations?: number;
   /** 每步输出回调(用于可视化/教学模式的钩子) */
   onStep?: (step: { kind: 'llm' | 'tool' | 'done'; text?: string; tool?: string }) => void;
+  /** 内容流式回调(逐字收到模型输出,可用于 CLI/网页流式显示) */
+  onDelta?: (text: string) => void;
 }
 
 export const DEFAULT_SYSTEM = `你叫"知了",一个中文优先、轻量、把每一步都讲给你看的终端 AI 编码 agent。
@@ -40,6 +42,7 @@ export async function runTurn(
   const system = opts.system ?? DEFAULT_SYSTEM;
   const maxIterations = opts.maxIterations ?? 20;
   const onStep = opts.onStep ?? (() => undefined);
+  const onDelta = opts.onDelta ?? (() => undefined);
 
   // 重放历史 + 新用户消息
   const messages = session.readMessages();
@@ -55,7 +58,7 @@ export async function runTurn(
   for (let i = 0; i < maxIterations; i++) {
     const tools = toOpenAiTools(runtime.listTools());
     onStep({ kind: 'llm', text: `第 ${i + 1} 次请求模型(可用工具 ${tools.length} 个)` });
-    const res = await chat(cfg, messages, tools);
+    const res = await chatStream(cfg, messages, tools, onDelta);
 
     if (res.toolCalls.length === 0) {
       reply = res.content;

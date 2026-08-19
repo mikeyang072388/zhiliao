@@ -129,6 +129,35 @@ async function main(task: string | undefined, opts: Record<string, any>): Promis
   await runtime.dispose();
 }
 
+/** 子命令:网页 UI(浏览器打开一个会动的花园聊天页) */
+const webCmd = program
+  .command('web')
+  .description('启动网页 UI:浏览器打开花园聊天页(与 CLI 共享养成数据)');
+webCmd
+  .option('--port <port>', '监听端口(默认 3939)')
+  .action(async (opts: Record<string, unknown>) => {
+    const port = Number(opts.port ?? 3939);
+    const runtime = new ZhiliaoRuntime();
+    await runtime.mountBuiltin({ name: 'builtin-core', tools: builtinTools });
+    const cfg = resolveLlmConfig();
+    const isLocal = /localhost|127\.0\.0\.1/.test(cfg.baseURL);
+    if (!cfg.apiKey && !isLocal) {
+      console.error('[知了] 未找到 API key,请先运行: zhiliao config --key sk-xxx(本地 ollama 可忽略)');
+      process.exitCode = 1;
+      return;
+    }
+    const session = Session.create(process.cwd());
+    const server = await import('./web.js').then((m) => m.startWebServer({ runtime, cfg, session, port }));
+    console.log(`[知了] 模型 ${cfg.model} · 工具 ${runtime.listTools().length} 个 · Ctrl+C 停止`);
+    const stop = () => {
+      server.close();
+      void runtime.dispose();
+      process.exit(0);
+    };
+    process.on('SIGINT', stop);
+    process.on('SIGTERM', stop);
+  });
+
 /** 子命令:持久化配置(写入 ~/.zhiliao/config.json)
  * 注意:不要在此定义 --model/--base,它们与主命令同名,commander 会冲突;
  * model/base 走交互式提问或环境变量。 */

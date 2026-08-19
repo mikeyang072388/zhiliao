@@ -30,6 +30,20 @@
 - **养成是真实的**:花园数据存在 `~/.zhiliao/garden.json`,今天种的明天还在
 - **界面可靠**:长文本自动换行,消息流滚动,不会重叠到输入框
 
+## 网页 UI 🌐
+
+除了终端,知了还有一个**会动的花园网页**(零构建,纯 CSS 动画):
+
+```bash
+zhiliao web            # 默认端口 3939
+zhiliao web --port 8080
+# 浏览器打开 http://127.0.0.1:3939
+```
+
+- 顶部是 CSS 花园:云在飘、太阳转、花在摇、蝉在蹦,树随等级长大,果实挂上树
+- 聊天流式输出(打字机效果),工具调用显示为"⚒️ 挥动锄头"
+- 花园数据与 CLI **完全共享**(同一个 `~/.zhiliao/garden.json`),终端里种的果实网页上看得见
+
 ## 万物皆插件
 
 知了基于 [Cordis](https://github.com/cordiverse/cordis)(与 DeepSeek Harness 同款插件框架)构建。
@@ -122,13 +136,19 @@ assistant/message  模型最终回复
 
 ```
 src/
-├── bin.ts              # CLI 入口(commander)
+├── bin.tsx             # CLI 入口(commander:任务/交互/web/config)
 ├── loop.ts             # agent 循环(用户 → LLM → 工具 → 回灌 → 回复)
-├── llm.ts              # LLM 适配层(OpenAI 兼容,任意 provider)
+├── llm.ts              # LLM 适配层(OpenAI 兼容 + SSE 流式)
 ├── session.ts          # 会话持久化(JSONL + --resume)
+├── config.ts           # 持久化配置(~/.zhiliao/config.json)
+├── game.ts             # 花园养成逻辑(等级/果实/心情)
+├── web.ts              # 网页服务(原生 http + SSE)
+├── web-static.ts       # 网页前端(纯 CSS 花园,零构建)
 ├── tools/
 │   ├── types.ts        # 工具协议(万物皆插件的最小契约)
 │   └── builtin.ts      # 内置工具(bash/read/write/edit)
+├── ui/
+│   └── simple.tsx      # 终端花园界面(ink)
 └── plugins/
     └── runtime.ts      # 插件运行时(Cordis: Context + Service)
 ```
