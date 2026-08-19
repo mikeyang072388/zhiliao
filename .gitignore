@@ -3,3 +3,4 @@ dist/
 .zhiliao/
 *.log
 .DS_Store
+*.tgz
