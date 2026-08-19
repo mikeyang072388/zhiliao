@@ -17,10 +17,12 @@ export interface LlmConfig {
 }
 
 export interface ChatMessage {
-  role: 'system' | 'user' | 'assistant';
+  role: 'system' | 'user' | 'assistant' | 'tool';
   content: string;
   /** assistant 消息可携带工具调用(OpenAI 协议 tool_calls) */
   toolCalls?: ToolCall[];
+  /** role === 'tool' 时:响应的工具调用 id(OpenAI 协议 tool_call_id) */
+  toolCallId?: string;
 }
 
 export interface ToolCall {
@@ -43,7 +45,7 @@ export function defaultLlmConfig(): LlmConfig {
   };
 }
 
-/** 把内部消息转成 OpenAI wire 格式(assistant 带 tool_calls 时原样回传) */
+/** 把内部消息转成 OpenAI wire 格式(assistant 带 tool_calls、tool 消息带 tool_call_id) */
 function toWire(m: ChatMessage): Record<string, unknown> {
   const base: Record<string, unknown> = { role: m.role, content: m.content };
   if (m.role === 'assistant' && m.toolCalls && m.toolCalls.length > 0) {
@@ -52,6 +54,9 @@ function toWire(m: ChatMessage): Record<string, unknown> {
       type: 'function',
       function: { name: tc.name, arguments: tc.arguments },
     }));
+  }
+  if (m.role === 'tool' && m.toolCallId) {
+    base.tool_call_id = m.toolCallId;
   }
   return base;
 }
@@ -101,14 +106,11 @@ export async function chat(
   return { content: msg.content ?? null, toolCalls };
 }
 
-/** 在 messages 中追加一个工具调用结果(user 角色,OpenAI 协议) */
+/** 在 messages 中追加一个工具调用结果(标准 OpenAI 协议:role=tool + tool_call_id) */
 export function toolResultMessage(callId: string, content: string): ChatMessage {
   return {
-    role: 'user',
-    content: JSON.stringify({
-      type: 'tool_result',
-      tool_call_id: callId,
-      content,
-    }),
+    role: 'tool',
+    toolCallId: callId,
+    content,
   };
 }

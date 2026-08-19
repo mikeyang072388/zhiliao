@@ -14,8 +14,30 @@ const server = http.createServer((req, res) => {
   req.on('end', () => {
     callCount++;
     const parsed = JSON.parse(body);
-    const hasToolResult = JSON.stringify(parsed.messages).includes('tool_result');
-    console.log(`[mock] 第 ${callCount} 次请求 · messages=${parsed.messages.length} · 带工具结果=${hasToolResult}`);
+    const messages = parsed.messages ?? [];
+    const hasToolResult = JSON.stringify(messages).includes('tool_call_id');
+
+    // 严格协议校验(模拟 DeepSeek 的 400):assistant 带 tool_calls 后,
+    // 后续必须有 role='tool' 消息覆盖每个 tool_call_id
+    const missing = [];
+    for (let i = 0; i < messages.length; i++) {
+      if (messages[i].role === 'assistant' && Array.isArray(messages[i].tool_calls)) {
+        const ids = new Set(messages[i].tool_calls.map((c) => c.id));
+        for (let j = i + 1; j < messages.length; j++) {
+          if (messages[j].role === 'tool') ids.delete(messages[j].tool_call_id);
+        }
+        for (const id of ids) missing.push(id);
+      }
+    }
+    if (missing.length > 0) {
+      console.log(`[mock] 协议校验失败: 缺少 tool 消息 ${missing.join(', ')}`);
+      res.statusCode = 400;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ error: { message: `missing tool messages: ${missing.join(',')}` } }));
+      return;
+    }
+
+    console.log(`[mock] 第 ${callCount} 次请求 · messages=${messages.length} · 带工具结果=${hasToolResult}`);
     res.setHeader('Content-Type', 'application/json');
     if (!hasToolResult) {
       res.end(JSON.stringify({
