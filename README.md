@@ -43,9 +43,10 @@ export const myPlugin = {
 # 安装
 npm i -g zhiliao
 
-# 配置(二选一)
-export ZHI_LLM_KEY=sk-...                 # DeepSeek / Kimi / 任意 OpenAI 兼容
-export ZHI_LLM_BASE=http://localhost:11434/v1   # 本地 ollama(无需 key)
+# 配置(只需一次,持久化到 ~/.zhiliao/config.json,以后永远不用再输)
+zhiliao config --key sk-xxx                 # 设置 API key
+zhiliao config --show                       # 查看当前配置
+zhiliao config                              # 交互式设置 key/模型/端点
 
 # 直接执行任务
 zhiliao "帮我写一个二分查找函数"
@@ -60,7 +61,19 @@ zhiliao --resume <会话id>
 zhiliao --list-plugins
 ```
 
-## 环境变量
+## 配置优先级
+
+命令行参数 > 环境变量 > 配置文件(`~/.zhiliao/config.json`)> 默认值
+
+| 来源 | 示例 |
+|---|---|
+| 命令行 | `zhiliao --model qwen-max "..."` |
+| 环境变量 | `ZHI_LLM_KEY` / `ZHI_LLM_BASE` / `ZHI_LLM_MODEL`(以及 `DEEPSEEK_API_KEY`) |
+| 配置文件 | `zhiliao config --key sk-xxx` 写入 |
+
+本地 ollama 无需 key:`zhiliao config --base http://localhost:11434/v1 --key ""` 后设置模型即可。
+
+## 环境变量(可选的临时覆盖,优先级高于配置文件)
 
 | 变量 | 默认值 | 说明 |
 |---|---|---|

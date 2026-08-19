@@ -12,3 +12,5 @@ export type { TurnOptions, TurnResult } from './loop.js';
 export { chat, defaultLlmConfig, toolResultMessage } from './llm.js';
 export type { LlmConfig, ChatMessage, ToolCall, AssistantReply } from './llm.js';
 export { Session } from './session.js';
+export { loadConfig, saveConfig, resolveLlmConfig, configPath } from './config.js';
+export type { ZhiliaoConfig } from './config.js';

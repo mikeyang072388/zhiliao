@@ -14,7 +14,7 @@ import { ZhiliaoRuntime } from './plugins/runtime.js';
 import { builtinTools } from './tools/builtin.js';
 import { Session } from './session.js';
 import { runTurn } from './loop.js';
-import { defaultLlmConfig } from './llm.js';
+import { resolveLlmConfig, loadConfig, saveConfig, configPath } from './config.js';
 
 const program = new Command();
 
@@ -50,12 +50,11 @@ async function main(task: string | undefined, opts: Record<string, any>): Promis
     return;
   }
 
-  const cfg = defaultLlmConfig();
-  if (opts.model) cfg.model = String(opts.model);
-  if (opts.base) cfg.baseURL = String(opts.base);
+  const cfg = resolveLlmConfig({ model: opts.model, baseURL: opts.base });
   const isLocal = /localhost|127\.0\.0\.1/.test(cfg.baseURL);
   if (!cfg.apiKey && !isLocal) {
-    console.error('[知了] 未找到 API key:请设置环境变量 ZHI_LLM_KEY 或 DEEPSEEK_API_KEY(本地 ollama 可忽略)');
+    console.error('[知了] 未找到 API key。请先运行: zhiliao config --key sk-xxx');
+    console.error('       或设置环境变量 ZHI_LLM_KEY / DEEPSEEK_API_KEY(本地 ollama 可忽略)');
     process.exitCode = 1;
     return;
   }
@@ -104,5 +103,51 @@ async function main(task: string | undefined, opts: Record<string, any>): Promis
   rl.close();
   await runtime.dispose();
 }
+
+/** 子命令:持久化配置(写入 ~/.zhiliao/config.json)
+ * 注意:不要在此定义 --model/--base,它们与主命令同名,commander 会冲突;
+ * model/base 走交互式提问或环境变量。 */
+const configCmd = program
+  .command('config')
+  .description('设置持久化配置(交互式;或 --key 直接指定,--show 查看)');
+configCmd
+  .option('--key <key>', '直接指定 API key,跳过提问')
+  .option('--show', '查看当前配置(key 打码)')
+  .action(async (opts: Record<string, unknown>) => {
+    if (opts.show) {
+      const c = loadConfig();
+      console.log(`端点:   ${c.baseURL ?? '(默认 https://api.deepseek.com/v1)'}`);
+      console.log(`模型:   ${c.model ?? '(默认 deepseek-chat)'}`);
+      console.log(`API key: ${c.apiKey ? c.apiKey.slice(0, 6) + '****' : '(未设置)'}`);
+      console.log(`配置文件: ${configPath()}`);
+      return;
+    }
+
+    if (opts.key) {
+      // 快捷方式:一条命令只设 key,不提问
+      saveConfig({ apiKey: String(opts.key) });
+      console.log(`已保存 API key 到 ${configPath()}(以后无需再输入)`);
+      return;
+    }
+
+    // 交互式:依次问 key / model / base(空 = 保持现有/默认)
+    const rl = createInterface({ input: stdin, output: stdout });
+    const ask = async (prompt: string): Promise<string> => (await rl.question(prompt)).trim();
+    const patch: Record<string, string | undefined> = {};
+    const key = await ask('API key(回车保持现有): ');
+    if (key) patch.apiKey = key;
+    const model = await ask('模型名(回车 = deepseek-chat): ');
+    if (model) patch.model = model;
+    const base = await ask('OpenAI 兼容端点(回车 = DeepSeek 官方): ');
+    if (base) patch.baseURL = base;
+    rl.close();
+
+    if (Object.keys(patch).length === 0) {
+      console.log('未做任何修改。');
+      return;
+    }
+    saveConfig(patch);
+    console.log(`已保存配置到 ${configPath()}(以后无需再输入)`);
+  });
 
 program.parseAsync(process.argv);
