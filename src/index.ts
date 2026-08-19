@@ -14,3 +14,8 @@ export type { LlmConfig, ChatMessage, ToolCall, AssistantReply } from './llm.js'
 export { Session } from './session.js';
 export { loadConfig, saveConfig, resolveLlmConfig, configPath } from './config.js';
 export type { ZhiliaoConfig } from './config.js';
+export {
+  emptyGarden, doChore, onChat, onFail, expToNext, moodFace, stageOf,
+  renderGarden, toolAction, loadGarden, saveGarden, FRUITS,
+} from './game.js';
+export type { GardenState, ChoreResult } from './game.js';
