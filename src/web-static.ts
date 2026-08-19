@@ -1,14 +1,13 @@
 /**
  * 知了 · 网页 UI(零构建:原生 HTML/CSS/JS 内嵌)
  *
- * 特色:顶部一个会动的 CSS 花园(云飘、花摇、果实挂树、蝉蹦跳),
- * 中部聊天区,底部状态栏 + 输入框。花园状态与 CLI 共用 garden.json。
+ * 布局:左侧边栏(会话列表 + 新建 + 农具),右侧主区(会动的花园 + 聊天 + 输入)。
+ * 支持多会话切换,花园与 CLI 共享 garden.json。
+ * 注意:整个 HTML 用 String.raw 包裹,内嵌 JS 的反斜杠(如 '\n')必须原样保留。
  */
 
-const STAGES: Record<number, string> = { 1: '🥚', 2: '🥚', 3: '🐛', 4: '🐛', 5: '🐛', 6: '🍂', 7: '🍂', 8: '🍂', 9: '🍂', 10: '🦗' };
-
 export function renderPage(): string {
-  return `<!doctype html>
+  return String.raw`<!doctype html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -16,31 +15,46 @@ export function renderPage(): string {
 <title>🍃 知了 · 蝉之园</title>
 <style>
   * { box-sizing: border-box; margin: 0; }
-  body { font-family: system-ui, "PingFang SC", "Microsoft YaHei", sans-serif; height: 100vh; display: flex; flex-direction: column; background: #d9f2ff; }
-  /* ── 花园 ── */
-  .garden { position: relative; height: 190px; overflow: hidden; background: linear-gradient(#aee6ff 0%, #d9f2ff 55%, #7ec850 55%, #5da83f 100%); border-bottom: 4px solid #3e7d2a; }
-  .cloud { position: absolute; font-size: 30px; opacity: .9; animation: drift linear infinite; }
-  .cloud.c1 { top: 12px; animation-duration: 38s; }
-  .cloud.c2 { top: 44px; font-size: 22px; animation-duration: 52s; animation-delay: -20s; }
+  body { font-family: system-ui, "PingFang SC", "Microsoft YaHei", sans-serif; height: 100vh; background: #d9f2ff; }
+  .app { display: flex; height: 100vh; }
+  /* ── 侧边栏 ── */
+  .sidebar { width: 240px; min-width: 240px; background: linear-gradient(#1b5e20, #2e7d32); color: #fff; display: flex; flex-direction: column; padding: 14px 10px; gap: 8px; }
+  .brand { font-size: 20px; font-weight: 700; padding: 4px 8px; }
+  .brand small { font-size: 12px; font-weight: 400; opacity: .8; display: block; }
+  #newbtn { background: #aeea00; color: #1b5e20; border: none; border-radius: 10px; padding: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  #newbtn:hover { background: #c6ff00; }
+  .sess-title { font-size: 12px; opacity: .7; padding: 6px 8px 2px; }
+  .sessions { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; }
+  .sess { padding: 8px 10px; border-radius: 8px; cursor: pointer; font-size: 13px; line-height: 1.4; background: rgba(255,255,255,.06); }
+  .sess:hover { background: rgba(255,255,255,.14); }
+  .sess.active { background: rgba(255,255,255,.24); box-shadow: inset 3px 0 0 #aeea00; }
+  .sess .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sess .m { font-size: 11px; opacity: .65; }
+  .tools { padding: 4px 8px; font-size: 12px; opacity: .85; display: flex; flex-wrap: wrap; gap: 4px; }
+  .tools span { background: rgba(255,255,255,.12); padding: 2px 7px; border-radius: 8px; }
+  /* ── 主区 ── */
+  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .garden { position: relative; height: 170px; overflow: hidden; background: linear-gradient(#aee6ff 0%, #d9f2ff 55%, #7ec850 55%, #5da83f 100%); border-bottom: 4px solid #3e7d2a; }
+  .cloud { position: absolute; font-size: 28px; opacity: .9; animation: drift linear infinite; }
+  .cloud.c1 { top: 10px; animation-duration: 38s; }
+  .cloud.c2 { top: 40px; font-size: 20px; animation-duration: 52s; animation-delay: -20s; }
   @keyframes drift { from { transform: translateX(-70px); } to { transform: translateX(110vw); } }
-  .sun { position: absolute; right: 26px; top: 8px; font-size: 40px; animation: spin 24s linear infinite; }
+  .sun { position: absolute; right: 24px; top: 6px; font-size: 36px; animation: spin 24s linear infinite; }
   @keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
-  .ground { position: absolute; bottom: 0; left: 0; right: 0; height: 64px; }
-  .tree { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); font-size: 84px; line-height: 1; filter: drop-shadow(0 4px 6px rgba(0,0,0,.15)); transition: font-size .5s; }
-  .cicada { position: absolute; bottom: 96px; left: calc(50% + 34px); font-size: 26px; animation: hop 2.8s ease-in-out infinite; }
+  .tree { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); font-size: 76px; line-height: 1; filter: drop-shadow(0 4px 6px rgba(0,0,0,.15)); transition: font-size .5s; }
+  .cicada { position: absolute; bottom: 86px; left: calc(50% + 32px); font-size: 24px; animation: hop 2.8s ease-in-out infinite; }
   @keyframes hop { 0%,100% { transform: translateY(0) rotate(-8deg); } 50% { transform: translateY(-8px) rotate(8deg); } }
-  .flowers { position: absolute; bottom: 4px; left: 0; right: 0; text-align: center; font-size: 26px; letter-spacing: 10px; white-space: nowrap; }
+  .flowers { position: absolute; bottom: 4px; left: 0; right: 0; text-align: center; font-size: 24px; letter-spacing: 9px; white-space: nowrap; }
   .flower { display: inline-block; animation: sway 2.4s ease-in-out infinite; }
   .flower:nth-child(2n) { animation-delay: -.8s; }
   .flower:nth-child(3n) { animation-delay: -1.5s; }
   @keyframes sway { 0%,100% { transform: rotate(-7deg); } 50% { transform: rotate(7deg); } }
-  .fruits { position: absolute; left: calc(50% - 8px); bottom: 84px; transform: translateX(-50%); font-size: 20px; letter-spacing: -2px; white-space: nowrap; }
+  .fruits { position: absolute; left: calc(50% - 6px); bottom: 76px; transform: translateX(-50%); font-size: 18px; letter-spacing: -2px; white-space: nowrap; }
   .fruit { display: inline-block; animation: drop .6s ease-in; }
-  @keyframes drop { from { transform: translateY(-26px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-  .hint { position: absolute; right: 12px; bottom: 8px; color: rgba(255,255,255,.9); font-size: 12px; background: rgba(0,0,0,.25); padding: 2px 8px; border-radius: 10px; }
+  @keyframes drop { from { transform: translateY(-24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
   /* ── 聊天 ── */
-  .chat { flex: 1; overflow-y: auto; padding: 14px 16px; background: rgba(255,255,255,.78); backdrop-filter: blur(2px); }
-  .msg { margin: 8px 0; display: flex; }
+  .chat { flex: 1; overflow-y: auto; padding: 12px 16px; background: rgba(255,255,255,.78); }
+  .msg { margin: 7px 0; display: flex; }
   .msg .bubble { max-width: 82%; padding: 8px 12px; border-radius: 14px; line-height: 1.65; white-space: pre-wrap; word-break: break-word; font-size: 14px; }
   .msg.user { justify-content: flex-end; }
   .msg.user .bubble { background: #2e7d32; color: #fff; border-bottom-right-radius: 4px; }
@@ -61,46 +75,55 @@ export function renderPage(): string {
 </style>
 </head>
 <body>
-  <!-- 花园 -->
-  <div class="garden" id="garden">
-    <div class="cloud c1">☁️</div>
-    <div class="cloud c2">☁️</div>
-    <div class="sun">☀️</div>
-    <div class="tree" id="tree">🌱</div>
-    <div class="cicada" id="cicada">🥚</div>
-    <div class="fruits" id="fruits"></div>
-    <div class="flowers" id="flowers"></div>
-    <div class="hint" id="hint">蝉之园</div>
-  </div>
+<div class="app">
+  <!-- 侧边栏 -->
+  <aside class="sidebar">
+    <div class="brand">🍃 知了<small>蝉之园 · 中文优先编码 agent</small></div>
+    <button id="newbtn">＋ 新会话</button>
+    <div class="sess-title">会话</div>
+    <div class="sessions" id="sessions"></div>
+    <div class="sess-title">农具</div>
+    <div class="tools" id="tools"></div>
+  </aside>
 
-  <!-- 聊天 -->
-  <div class="chat" id="chat"></div>
+  <!-- 主区 -->
+  <main class="main">
+    <div class="garden">
+      <div class="cloud c1">☁️</div>
+      <div class="cloud c2">☁️</div>
+      <div class="sun">☀️</div>
+      <div class="tree" id="tree">🌱</div>
+      <div class="cicada" id="cicada">🥚</div>
+      <div class="fruits" id="fruits"></div>
+      <div class="flowers" id="flowers"></div>
+    </div>
 
-  <!-- 状态栏 -->
-  <div class="status">
-    <span id="stLevel">Lv.1</span>
-    <span id="stMood">(•ᴗ•)</span>
-    <span id="stFruits">果实 —</span>
-    <span class="expbar"><div class="expfill" id="expfill" style="width:0%"></div></span>
-    <span id="stExp">0/50</span>
-    <span id="stDeeds">劳作 0</span>
-  </div>
+    <div class="chat" id="chat"></div>
 
-  <!-- 输入 -->
-  <div class="inputbar">
-    <input id="input" placeholder="和蝉说点什么…(/exit 无用,网页常驻)" autocomplete="off">
-    <button id="send">发送 🌱</button>
-  </div>
+    <div class="status">
+      <span id="stLevel">Lv.1</span>
+      <span id="stMood">(•ᴗ•)</span>
+      <span id="stFruits">果实 —</span>
+      <span class="expbar"><div class="expfill" id="expfill" style="width:0%"></div></span>
+      <span id="stExp">0/50</span>
+      <span id="stDeeds">劳作 0</span>
+    </div>
+
+    <div class="inputbar">
+      <input id="input" placeholder="和蝉说点什么…(Enter 发送)" autocomplete="off">
+      <button id="send">发送 🌱</button>
+    </div>
+  </main>
+</div>
 
 <script>
   const $ = (id) => document.getElementById(id);
   const chat = $('chat');
   const FLOWERS = ['🌷', '🌸', '🌻', '🌼'];
-  const MOOD = [
-    [80, '(๑˃ᴗ˂)ﻭ'], [55, '(•ᴗ•)'], [30, '(・_・;)'], [0, '(╥﹏╥)'],
-  ];
+  const MOOD = [[80, '(๑˃ᴗ˂)ﻭ'], [55, '(•ᴗ•)'], [30, '(・_・;)'], [0, '(╥﹏╥)']];
   const STAGE = { 1: '🥚', 3: '🐛', 6: '🍂', 10: '🦗' };
   const TREE = { 1: '🌱', 3: '🌿', 5: '🌳', 9: '🌳🌳' };
+  let currentSessionId = null;
 
   function scrollDown() { chat.scrollTop = chat.scrollHeight; }
 
@@ -118,25 +141,13 @@ export function renderPage(): string {
     return bubble;
   }
 
-  function stageFor(lv) {
-    let s = '🥚';
-    for (const [min, icon] of Object.entries(STAGE)) { if (lv >= Number(min)) s = icon; }
-    return s;
-  }
-  function treeFor(lv) {
-    let s = '🌱';
-    for (const [min, icon] of Object.entries(TREE)) { if (lv >= Number(min)) s = icon; }
-    return s;
-  }
-  function moodFor(m) {
-    for (const [min, face] of MOOD) { if (m >= min) return face; }
-    return '(╥﹏╥)';
-  }
+  function stageFor(lv) { let s = '🥚'; for (const k in STAGE) { if (lv >= Number(k)) s = STAGE[k]; } return s; }
+  function treeFor(lv) { let s = '🌱'; for (const k in TREE) { if (lv >= Number(k)) s = TREE[k]; } return s; }
+  function moodFor(m) { for (const [min, face] of MOOD) { if (m >= min) return face; } return '(╥﹏╥)'; }
 
   function renderGarden(g) {
     $('tree').textContent = treeFor(g.level);
     $('cicada').textContent = stageFor(g.level);
-    // 花:按劳作数
     const n = Math.min(10, 1 + Math.floor(g.deeds / 3));
     $('flowers').innerHTML = '';
     for (let i = 0; i < n; i++) {
@@ -145,23 +156,60 @@ export function renderPage(): string {
       f.textContent = FLOWERS[i % FLOWERS.length];
       $('flowers').appendChild(f);
     }
-    // 果实:最多显示 8 个,新果实在最前面有掉落动画
-    const fruits = g.fruits.slice(-8);
     $('fruits').innerHTML = '';
-    for (let i = 0; i < fruits.length; i++) {
-      const fr = document.createElement('span');
-      fr.className = 'fruit' + (i === fruits.length - 1 ? '' : '');
-      fr.textContent = fruits[i];
-      $('fruits').appendChild(fr);
+    for (const fr of g.fruits.slice(-8)) {
+      const el = document.createElement('span');
+      el.className = 'fruit';
+      el.textContent = fr;
+      $('fruits').appendChild(el);
     }
-    // 状态栏
     $('stLevel').textContent = 'Lv.' + g.level;
     $('stMood').textContent = moodFor(g.mood);
     $('stFruits').textContent = '果实 ' + (g.fruits.length ? g.fruits.join('') : '—');
     $('stDeeds').textContent = '劳作 ' + g.deeds + ' · 对话 ' + (g.chats ?? 0);
     $('expfill').style.width = Math.min(100, (g.exp / 50 / g.level / g.level) * 100) + '%';
     $('stExp').textContent = g.exp + '/' + 50 * g.level * g.level;
-    $('hint').textContent = '蝉之园 · 劳作 ' + g.deeds + ' 次';
+  }
+
+  function fmtTime(ms) {
+    const d = new Date(ms);
+    return (d.getMonth() + 1) + '-' + d.getDate() + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  }
+
+  async function loadSessions() {
+    const res = await fetch('/api/sessions');
+    const { sessions } = await res.json();
+    const box = $('sessions');
+    box.innerHTML = '';
+    for (const s of sessions) {
+      const el = document.createElement('div');
+      el.className = 'sess' + (s.id === currentSessionId ? ' active' : '');
+      el.innerHTML = '<div class="t">' + s.title.replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c])) + '</div><div class="m">' + fmtTime(s.time) + ' · ' + s.count + ' 条</div>';
+      el.addEventListener('click', () => selectSession(s.id));
+      box.appendChild(el);
+    }
+  }
+
+  async function selectSession(id) {
+    currentSessionId = id;
+    chat.innerHTML = '';
+    const res = await fetch('/api/session/' + id);
+    const data = await res.json();
+    for (const m of data.messages) addMsg(m.role, m.content);
+    if (!data.messages.length) addMsg('system', '(新会话,说句话开始)');
+    loadSessions();
+  }
+
+  async function newSession() {
+    const res = await fetch('/api/session/create', { method: 'POST' });
+    const { id } = await res.json();
+    await selectSession(id);
+  }
+
+  async function loadTools() {
+    const res = await fetch('/api/tools');
+    const { tools } = await res.json();
+    $('tools').innerHTML = tools.map((t) => '<span>' + t.icon + ' ' + t.name + '</span>').join('');
   }
 
   async function send() {
@@ -179,7 +227,7 @@ export function renderPage(): string {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ message: text, sessionId: currentSessionId }),
       });
       const reader = res.body.getReader();
       const dec = new TextDecoder();
@@ -197,22 +245,16 @@ export function renderPage(): string {
           if (!data) continue;
           let ev;
           try { ev = JSON.parse(data); } catch { continue; }
-          if (ev.type === 'user') addMsg('user', ev.text);
+          if (ev.type === 'session') { currentSessionId = ev.id; loadSessions(); }
+          else if (ev.type === 'user') addMsg('user', ev.text);
           else if (ev.type === 'tool') addMsg('tool', ev.icon + ' ' + ev.name);
           else if (ev.type === 'system') addMsg('system', ev.text);
           else if (ev.type === 'delta') {
-            if (!assistantBubble) {
-              typing.remove();
-              assistantBubble = addMsg('assistant', '');
-            }
+            if (!assistantBubble) { typing.remove(); assistantBubble = addMsg('assistant', ''); }
             assistantBubble.textContent += ev.text;
             scrollDown();
-          } else if (ev.type === 'state') {
-            renderGarden(ev.garden);
-          } else if (ev.type === 'error') {
-            typing.remove();
-            addMsg('system', '🥀 ' + ev.text);
-          }
+          } else if (ev.type === 'state') renderGarden(ev.garden);
+          else if (ev.type === 'error') { typing.remove(); addMsg('system', '🥀 ' + ev.text); }
         }
       }
     } catch (err) {
@@ -227,12 +269,22 @@ export function renderPage(): string {
 
   $('send').addEventListener('click', send);
   $('input').addEventListener('keydown', (e) => { if (e.key === 'Enter') send(); });
+  $('newbtn').addEventListener('click', newSession);
 
-  // 初始化花园状态
+  // 初始化
+  loadTools();
   fetch('/api/garden').then((r) => r.json()).then((d) => {
     renderGarden(d.garden);
     addMsg('system', '欢迎回到蝉之园!花园 Lv.' + d.garden.level + ',说句话开始劳作吧。');
   }).catch(() => {});
+  loadSessions().then(() => {
+    if (!currentSessionId) {
+      // 默认选中最新会话
+      const first = document.querySelector('.sess');
+      if (first) first.click();
+      else newSession();
+    }
+  });
   $('input').focus();
 </script>
 </body>

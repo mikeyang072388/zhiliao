@@ -147,7 +147,7 @@ webCmd
       return;
     }
     const session = Session.create(process.cwd());
-    const server = await import('./web.js').then((m) => m.startWebServer({ runtime, cfg, session, port }));
+    const server = await import('./web.js').then((m) => m.startWebServer({ runtime, cfg, port }));
     console.log(`[知了] 模型 ${cfg.model} · 工具 ${runtime.listTools().length} 个 · Ctrl+C 停止`);
     const stop = () => {
       server.close();

@@ -6,7 +6,7 @@
  * 事件:session/start, user/message, assistant/message, tool/call, tool/result, turn/end
  * 支持 --resume <id> 续聊:重放历史消息。
  */
-import { mkdirSync, readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -95,5 +95,39 @@ export class Session {
     const dir = join(sessionsRoot(), slugify(cwd));
     if (!existsSync(dir)) return [];
     return readdirSync(dir).filter((f) => f.endsWith('.jsonl')).map((f) => f.slice(0, -6));
+  }
+
+  /** 列出会话及其元信息(标题=首条用户消息,时间=文件修改时间,消息数),按时间倒序 */
+  static listWithMeta(cwd: string): { id: string; title: string; time: number; count: number }[] {
+    const dir = join(sessionsRoot(), slugify(cwd));
+    if (!existsSync(dir)) return [];
+    return readdirSync(dir)
+      .filter((f) => f.endsWith('.jsonl'))
+      .map((f) => {
+        const file = join(dir, f);
+        let title = '';
+        let count = 0;
+        try {
+          for (const line of readFileSync(file, 'utf8').split('\n')) {
+            if (!line.trim()) continue;
+            count++;
+            if (!title) {
+              const ev = JSON.parse(line) as SessionEvent;
+              if (ev.type === 'user/message') title = String(ev.content ?? '').slice(0, 24);
+            }
+          }
+        } catch {
+          // 跳过损坏的会话文件
+        }
+        return { id: f.slice(0, -6), title: title || '(空会话)', time: statSync(file).mtimeMs, count };
+      })
+      .sort((a, b) => b.time - a.time);
+  }
+
+  /** 会话的公开消息视图(网页切换会话时展示) */
+  toView(): { role: string; content: string }[] {
+    return this.readMessages()
+      .filter((m) => m.role === 'user' || (m.role === 'assistant' && m.content))
+      .map((m) => ({ role: m.role, content: m.content }));
   }
 }
