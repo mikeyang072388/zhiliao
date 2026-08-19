@@ -1,0 +1,40 @@
+{
+  "name": "zhiliao",
+  "version": "0.1.0",
+  "description": "知了 · 中文优先、轻量、把每一步都讲给你看的终端 AI 编码 agent（万物皆插件）",
+  "type": "module",
+  "bin": {
+    "zhiliao": "dist/bin.js"
+  },
+  "main": "dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "npm run build && node dist/bin.js",
+    "start": "node dist/bin.js"
+  },
+  "keywords": [
+    "agent",
+    "cli",
+    "ai",
+    "coding-agent",
+    "zhiliao",
+    "chinese",
+    "local-llm",
+    "plugin"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "commander": "^15.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}

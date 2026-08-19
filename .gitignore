@@ -1,0 +1,5 @@
+node_modules/
+dist/
+.zhiliao/
+*.log
+.DS_Store
