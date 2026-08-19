@@ -1,7 +1,7 @@
 {
   "name": "zhiliao",
   "version": "0.1.0",
-  "description": "知了 · 中文优先、轻量、把每一步都讲给你看的终端 AI 编码 agent（万物皆插件）",
+  "description": "知了 · 中文优先、轻量、带养成花园的终端 AI 编码 agent（万物皆插件）",
   "type": "module",
   "bin": {
     "zhiliao": "dist/bin.js"
