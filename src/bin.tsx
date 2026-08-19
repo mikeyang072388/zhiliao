@@ -17,7 +17,7 @@ import { builtinTools } from './tools/builtin.js';
 import { Session } from './session.js';
 import { runTurn } from './loop.js';
 import { resolveLlmConfig, loadConfig, saveConfig, configPath } from './config.js';
-import { GardenApp } from './ui/garden.js';
+import { SimpleApp } from './ui/simple.js';
 import { loadGarden, saveGarden, doChore, renderGarden } from './game.js';
 
 const program = new Command();
@@ -104,7 +104,7 @@ async function main(task: string | undefined, opts: Record<string, any>): Promis
 
   // 交互模式:有 TTY 时用花园界面,否则回退到简单 readline
   if (stdout.isTTY) {
-    const { waitUntilExit } = render(<GardenApp runtime={runtime} cfg={cfg} session={session} />);
+    const { waitUntilExit } = render(<SimpleApp runtime={runtime} cfg={cfg} session={session} />);
     await waitUntilExit();
     await runtime.dispose();
     return;
