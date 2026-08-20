@@ -76,6 +76,14 @@ export function startWebServer(opts: WebServerOptions): http.Server {
       return;
     }
 
+    if (path.startsWith('/api/session/') && req.method === 'DELETE') {
+      const id = path.slice('/api/session/'.length);
+      sessions.delete(id);
+      const ok = Session.delete(cwd, id);
+      json(200, { ok });
+      return;
+    }
+
     if (path.startsWith('/api/session/') && req.method === 'GET') {
       const id = path.slice('/api/session/'.length);
       const s = Session.resume(id, cwd);

@@ -3,6 +3,10 @@
 <p align="center">🌏 <a href="README.en.md">English</a> · 中文</p>
 
 <p align="center">
+  <img src="docs/demo.gif" alt="知了 zhiliao 演示" width="640">
+</p>
+
+<p align="center">
   <b>会养花园的中文 AI 编码 agent</b><br>
   把编码变成一场养成游戏 —— 每个工具都是农具,每次成功都结一个果实 🍎
 </p>

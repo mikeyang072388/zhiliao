@@ -1,6 +1,10 @@
 <h1 align="center">🍃 zhiliao</h1>
 
 <p align="center">
+  <img src="docs/demo.gif" alt="zhiliao demo" width="640">
+</p>
+
+<p align="center">
   <b>The Chinese-first AI coding agent that grows a garden</b><br>
   Turn coding into a farming game — every tool is a tool of the trade, every success grows a fruit 🍎
 </p>

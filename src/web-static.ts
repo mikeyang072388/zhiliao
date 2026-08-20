@@ -28,7 +28,12 @@ export function renderPage(): string {
   .sess { padding: 8px 10px; border-radius: 8px; cursor: pointer; font-size: 13px; line-height: 1.4; background: rgba(255,255,255,.06); }
   .sess:hover { background: rgba(255,255,255,.14); }
   .sess.active { background: rgba(255,255,255,.24); box-shadow: inset 3px 0 0 #aeea00; }
+  .sess { display: flex; align-items: center; gap: 4px; }
+  .sess .info { flex: 1; min-width: 0; }
   .sess .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sess .del { opacity: 0; flex: none; cursor: pointer; font-size: 11px; padding: 1px 5px; border-radius: 6px; background: rgba(255,255,255,.15); }
+  .sess:hover .del { opacity: 1; }
+  .sess .del:hover { background: #c62828; }
   .sess .m { font-size: 11px; opacity: .65; }
   .tools { padding: 4px 8px; font-size: 12px; opacity: .85; display: flex; flex-wrap: wrap; gap: 4px; }
   .tools span { background: rgba(255,255,255,.12); padding: 2px 7px; border-radius: 8px; }
@@ -243,8 +248,15 @@ export function renderPage(): string {
     for (const s of sessions) {
       const el = document.createElement('div');
       el.className = 'sess' + (s.id === currentSessionId ? ' active' : '');
-      el.innerHTML = '<div class="t">' + s.title.replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c])) + '</div><div class="m">' + fmtTime(s.time) + ' · ' + s.count + ' 条</div>';
-      el.addEventListener('click', () => selectSession(s.id));
+      el.innerHTML = '<div class="info"><div class="t">' + s.title.replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c])) + '</div><div class="m">' + fmtTime(s.time) + ' · ' + s.count + ' 条</div></div><span class="del" title="删除会话">🗑</span>';
+      el.addEventListener('click', (e) => { if (!e.target.classList.contains('del')) selectSession(s.id); });
+      el.querySelector('.del').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (!confirm('删除这个会话?')) return;
+        await fetch('/api/session/' + s.id, { method: 'DELETE' });
+        if (currentSessionId === s.id) { currentSessionId = null; chat.innerHTML = ''; }
+        loadSessions();
+      });
       box.appendChild(el);
     }
   }

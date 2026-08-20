@@ -6,7 +6,7 @@
  * 事件:session/start, user/message, assistant/message, tool/call, tool/result, turn/end
  * 支持 --resume <id> 续聊:重放历史消息。
  */
-import { mkdirSync, readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync, existsSync, readdirSync, statSync, unlinkSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -122,6 +122,14 @@ export class Session {
         return { id: f.slice(0, -6), title: title || '(空会话)', time: statSync(file).mtimeMs, count };
       })
       .sort((a, b) => b.time - a.time);
+  }
+
+  /** 删除一个会话文件(网页侧边栏用);返回是否删除成功 */
+  static delete(cwd: string, id: string): boolean {
+    const file = join(sessionsRoot(), slugify(cwd), `${id}.jsonl`);
+    if (!existsSync(file)) return false;
+    unlinkSync(file);
+    return true;
   }
 
   /** 会话的公开消息视图(网页切换会话时展示) */
