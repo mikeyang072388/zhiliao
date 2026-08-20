@@ -1,209 +1,135 @@
-# 知了 (zhiliao)
+<h1 align="center">🍃 知了 zhiliao</h1>
 
-> 中文优先 · 轻量 · 把每一步都讲给你看的终端 AI 编码 agent · **万物皆插件** · 终端花园养成
+<p align="center">
+  <b>会养花园的中文 AI 编码 agent</b><br>
+  把编码变成一场养成游戏 —— 每个工具都是农具,每次成功都结一个果实 🍎
+</p>
 
-知了是一个用 TypeScript 写的终端 AI 编码 agent,设计目标是四个词:
+<p align="center">
+  <a href="https://www.npmjs.com/package/zhiliao"><img src="https://img.shields.io/npm/v/zhiliao?style=flat-square&label=npm&color=2e7d32" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/zhiliao"><img src="https://img.shields.io/npm/dt/zhiliao?style=flat-square&label=下载量&color=43a047" alt="npm downloads"></a>
+  <img src="https://img.shields.io/badge/node-%3E%3D22-339933?style=flat-square&logo=node.js" alt="Node.js">
+  <img src="https://img.shields.io/badge/license-MIT-2e7d32?style=flat-square" alt="MIT">
+  <img src="https://img.shields.io/badge/插件-万物皆插件-7cb342?style=flat-square" alt="plugins">
+</p>
 
-1. **中文优先** — 交互、错误、输出全中文;内置 DeepSeek / Kimi / Qwen / 本地 ollama 适配,开箱即用
-2. **轻量** — 只依赖 `commander` + `cordis` + `ink`,一个 npm 包全局安装即可运行,本地模型也能跑
-3. **透明** — 每个回合都记录到会话日志(JSONL),支持 `--resume` 续聊,每一步做了什么都可以回放
-4. **趣味** — 终端不是冰冷的对话框,而是一座**蝉之园**:你让蝉干活,它就在花园里劳作、升级、结果实(养成数据跨会话持久化在 `~/.zhiliao/garden.json`)
+<p align="center">
+  <b>🇨🇳 中文优先</b> · <b>🧩 万物皆插件</b> · <b>🌸 花园养成</b> · <b>⚡ 轻量零依赖</b> · <b>🏠 本地模型</b>
+</p>
 
-## 🌸 蝉之园(为什么和别人不一样)
+---
 
-市面上的 agent 终端要么极简黑盒,要么标准聊天气泡。知了把终端变成一个**养成花园**——界面保持干净简洁,但底部有你的蝉和它的果园:
+## 为什么是知了?
+
+市面上的 AI 编码 agent,要么是冷冰冰的极简黑盒,要么是千篇一律的英文聊天气泡。**它们帮你写代码,却从不认识你。**
+
+知了不一样。它是**一只住在终端里的蝉**,你每次让它干活,它就在花园里挥锄头、播种、收获:
 
 ```
-帮你写个排序算法
+      ☁️        ☀️        ☁️
+       🌳
+    🌷🌱🌸🌻🌼
+ 蝉之园 Lv.5 🦗 (๑˃ᴗ˂)ﻭ 经验 ██████░░░░ 🍎🍐🍑
+ ─────────────────────────────────
+你> 帮我写个排序算法
 ⚒️ 蝉挥动锄头(bash)
-🍎 收获 🍊!
-🍃 写好了,用快速排序,复杂度 O(n log n)
-
-蝉之园 Lv.5 🦗(๑˃ᴗ˂)ﻭ 果实 🍎🍐 · 劳作 12 · /exit 退出
-你>
+🍎 收获 🍊!(+10 经验)
+🍃 写好了,快速排序,O(n log n)
+─────────────────────────────────
+你> _
 ```
 
-- **工具 = 农具**:`bash` 是挥锄头 ⚒️、`read` 是观察 🔍、`write` 是播种 🌱、`edit` 是修剪 ✂️
-- **成长**:每成功一次工具调用 +10 经验,升级让蝉换形态(🥚→🐛→🍂→🦗)
-- **收获**:每 5 次劳作结一个随机果实 🍎🍐🍑🍊🍇,存进你的果园
-- **心情**:成功心情好,失败花会蔫 🥀(蝉的表情会变:从 (๑˃ᴗ˂)ﻭ 到 (╥﹏╥))
-- **养成是真实的**:花园数据存在 `~/.zhiliao/garden.json`,今天种的明天还在
-- **界面可靠**:长文本自动换行,消息流滚动,不会重叠到输入框
+**你用工具,它长大;你犯错,它心疼。** 花园跨会话永久保存——今天种的果实,明天还在。
 
-## 网页 UI 🌐
+## ✨ 特性
 
-除了终端,知了还有一个**会动的花园网页**(零构建,纯 CSS 动画):
+| | 特性 | 说明 |
+|---|---|---|
+| 🌸 | **花园养成(独此一家)** | 工具=农具,5 次劳作结一个果,升级让树长大 🌱→🌿→🌳;心情会变,失败花会蔫 🥀 |
+| 🧩 | **万物皆插件** | 放一个 `.js` 文件到 `~/.zhiliao/plugins/` 就生效——**网页侧边栏点"重载"即时热更新**,不用改代码、不用重启。基于 [Cordis](https://github.com/cordiverse/cordis)(DeepSeek Harness 同款框架) |
+| 🇨🇳 | **中文优先** | 全中文交互;DeepSeek / Kimi / Qwen 开箱即用;中文路径、中文输出零障碍 |
+| ⚡ | **轻到极致** | 原生 Node,零构建链;CLI + 网页双界面,共用一个核心 |
+| 🖥️ | **会动的花园网页** | `zhiliao web` → 浏览器里云在飘、花在摇、蝉在蹦,果实在树上发光 |
+| 🏠 | **本地模型友好** | 一行配置接 ollama,数据不出本机,隐私无忧 |
+| 🔒 | **Key 只在本机** | API key 存在 `~/.zhiliao/config.json`(权限 0600),发布开源也绝不泄漏 |
+| 💾 | **透明会话** | 每轮对话 JSONL 落盘,`--resume` 续聊,随时回放 |
+
+## 🚀 30 秒上手
 
 ```bash
-zhiliao web            # 默认端口 3939
-zhiliao web --port 8080
-# 浏览器打开 http://127.0.0.1:3939
+# 1. 安装
+npm i -g zhiliao
+
+# 2. 配一次 key(永久生效,以后不用再输)
+zhiliao config --key sk-你的key
+
+# 3. 开始!
+zhiliao "帮我写一个二分查找"
+zhiliao                        # 进入花园交互模式
+zhiliao web                    # 打开会动的花园网页 http://127.0.0.1:3939
 ```
 
-- **侧边栏**:会话列表(标题/时间/消息数,点击切换)、新建会话、农具一览
-- **花园**:云在飘、太阳转、花在摇、蝉在蹦,树随等级长大,果实挂上树
-- **聊天**:流式打字机输出,工具调用显示为"⚒️ 挥动锄头",Enter 或点击发送;回复支持 **Markdown 渲染**(代码块/标题/列表/链接)
-- 多会话隔离,历史可回看;花园数据与 CLI **完全共享**(同一个 `~/.zhiliao/garden.json`)
+本地模型?`zhiliao config --base http://localhost:11434/v1 --key ""` 即可。
 
-## 万物皆插件
+## 🧩 万物皆插件,真的"万物"
 
-知了基于 [Cordis](https://github.com/cordiverse/cordis)(与 DeepSeek Harness 同款插件框架)构建。
+**内置工具本身就是一个插件**(`builtin-core`)——第三方插件和它走同一条协议,没有任何特权。
 
-**一切能力都是插件**:连内置的 `bash` / `read` / `write` / `edit` 工具,本身也是一个名为 `builtin-core` 的插件。第三方插件与内置工具走**同一条注册协议**:
+```bash
+mkdir -p ~/.zhiliao/plugins
+cp node_modules/zhiliao/examples/weather.plugin.js ~/.zhiliao/plugins/  # 抄一个示例
+# 改吧改吧,存盘,网页点"↻ 重载",完事。
+```
 
-```ts
-// 一个插件 = 一个对象,apply 里用 ctx.tools.register() 注册工具
-export const myPlugin = {
+```js
+// 一个插件 = 一个对象。就这么简单。
+export default {
   name: 'my-plugin',
-  description: '示例插件',
   apply(ctx) {
     ctx.tools.register({
       name: 'greet',
       description: '向用户问好',
-      parameters: {
-        type: 'object',
-        properties: { name: { type: 'string' } },
-        required: ['name'],
-        additionalProperties: false,
-      },
-      async execute(args) {
-        return `你好,${args.name}!`;
-      },
+      parameters: { type: 'object', properties: { name: { type: 'string' } } },
+      async execute(args) { return `你好, ${args.name}!`; },
     });
   },
 };
 ```
 
-### 🚀 开发你自己的插件(放个文件就生效)
+随包 5 个示例插件:`hello` / `time` / `http` / `weather`(免费查天气,无需 key)/ `calc`。写错了也不怕——**单个插件失败不影响其他任何功能**。
 
-**不用改任何代码,不用重启工程**——把你的插件存到 `~/.zhiliao/plugins/` 目录:
+## ⚔️ 和它们比
 
-```bash
-mkdir -p ~/.zhiliao/plugins
-# 复制示例插件(项目里 examples/hello.plugin.js)
-cp node_modules/zhiliao/examples/hello.plugin.js ~/.zhiliao/plugins/hello.js
+| | 🍃 知了 | Claude Code | Codex | 通用聊天 agent |
+|---|---|---|---|---|
+| 中文优先 | ✅ 原生 | 一般 | 一般 | 一般 |
+| 花园养成 | ✅ 独有 | ❌ | ❌ | ❌ |
+| 万物皆插件(文件即插即用) | ✅ | MCP 生态 | plugin 系统 | ❌ |
+| 本地模型 | ✅ 一行接入 | 有限 | ❌ | 有限 |
+| 网页花园 UI | ✅ 零依赖 | ❌ | 部分 | 通用 |
+| 启动/占用 | 极轻 | 中 | 中 | 重 |
 
-# CLI:下次启动自动加载,立即可用
-zhiliao --list-plugins          # 能看到 hello 插件和 say_hello 工具
+## 🗺️ 路线图
 
-# 网页:启动后侧边栏"🧩 插件"类目显示,点"↻ 重载"即时生效,不用重启服务
-zhiliao web
-```
+- [x] CLI agent 循环 + 会话持久化
+- [x] 万物皆插件 + 用户插件热重载
+- [x] 花园养成系统(等级/果实/心情)
+- [x] 网页 UI(侧边栏/多会话/Markdown)
+- [x] SSE 流式输出
+- [ ] 插件市场(一键分享/安装社区插件)
+- [ ] MCP 支持
+- [ ] 会话删除/重命名
+- [ ] 移动端 PWA
 
-- **插件文件格式**:`export default { name, description?, apply(ctx) }`(JS 即可,无需 TS/构建)
-- **apply(ctx) 里能做什么**:`ctx.tools.register(...)` 注册工具;还能用 Cordis 的能力(服务、事件、生命周期)
-- **改完即生效**:网页侧边栏点"重载",或重启 CLI——工具列表立刻更新
-- **失败不炸**:某个插件写错了,只影响它自己,其他插件和内置工具照常
+## 🤝 一起玩
 
-### 📦 随包示例插件(已装在 ~/.zhiliao/plugins/)
+知了还是个刚破壳的小蝉 🥚。如果它让你会心一笑,或者真的帮到了你:
 
-| 插件 | 工具 | 说明 |
-|---|---|---|
-| `hello` | `say_hello` | 入门示例:注册一个问候工具 |
-| `time` | `now` | 当前日期时间 |
-| `http` | `http_get` | HTTP GET 请求,读网页/调 API(无需 bash) |
-| `weather` | `weather` | 城市天气(open-meteo 免费 API,无需 key) |
-| `calc` | `calc` | 数学计算器(sqrt/log/pow 等) |
+- ⭐ **点个 Star**,让它有动力继续长高 🌱
+- 🐛 遇到 bug 提 [Issue](https://github.com/mikeyang072388/zhiliao/issues)
+- 🧩 写了插件?欢迎分享到 [Discussions](https://github.com/mikeyang072388/zhiliao/discussions)
+- 💬 想聊天?[Discussions](https://github.com/mikeyang072388/zhiliao/discussions) 见
 
-源码在项目 `examples/*.plugin.js`,复制到 `~/.zhiliao/plugins/` 即启用;写自己的插件照这个格式即可。
+**技术栈**:TypeScript · Node · [Cordis](https://github.com/cordiverse/cordis)(插件框架)· ink(终端 UI)· 零依赖网页
 
-## 快速开始
-
-```bash
-# 安装
-npm i -g zhiliao
-
-# 配置(只需一次,持久化到 ~/.zhiliao/config.json,以后永远不用再输)
-zhiliao config --key sk-xxx                 # 设置 API key
-zhiliao config --show                       # 查看当前配置
-zhiliao config                              # 交互式设置 key/模型/端点
-
-# 直接执行任务
-zhiliao "帮我写一个二分查找函数"
-
-# 交互模式
-zhiliao
-
-# 续聊之前的会话
-zhiliao --resume <会话id>
-
-# 查看已加载的插件和工具
-zhiliao --list-plugins
-```
-
-## 配置优先级
-
-命令行参数 > 环境变量 > 配置文件(`~/.zhiliao/config.json`)> 默认值
-
-| 来源 | 示例 |
-|---|---|
-| 命令行 | `zhiliao --model qwen-max "..."` |
-| 环境变量 | `ZHI_LLM_KEY` / `ZHI_LLM_BASE` / `ZHI_LLM_MODEL`(以及 `DEEPSEEK_API_KEY`) |
-| 配置文件 | `zhiliao config --key sk-xxx` 写入 |
-
-本地 ollama 无需 key:`zhiliao config --base http://localhost:11434/v1 --key ""` 后设置模型即可。
-
-## 环境变量(可选的临时覆盖,优先级高于配置文件)
-
-| 变量 | 默认值 | 说明 |
-|---|---|---|
-| `ZHI_LLM_KEY` | `DEEPSEEK_API_KEY` | API key(本地模型可省略) |
-| `ZHI_LLM_BASE` | `https://api.deepseek.com/v1` | OpenAI 兼容端点 |
-| `ZHI_LLM_MODEL` | `deepseek-chat` | 模型名 |
-
-## 会话存储
-
-每个会话一个 JSONL 文件,逐事件落盘于 `~/.zhiliao/sessions/<工作区>/<会话id>.jsonl`:
-
-```
-session/start      会话创建
-user/message       用户输入
-assistant/tool-calls  模型请求调用工具
-tool/call          工具调用
-tool/result        工具结果
-assistant/message  模型最终回复
-```
-
-`--resume <id>` 会重放这些事件还原对话历史。
-
-## 项目结构
-
-```
-src/
-├── bin.tsx             # CLI 入口(commander:任务/交互/web/config)
-├── loop.ts             # agent 循环(用户 → LLM → 工具 → 回灌 → 回复)
-├── llm.ts              # LLM 适配层(OpenAI 兼容 + SSE 流式)
-├── session.ts          # 会话持久化(JSONL + --resume)
-├── config.ts           # 持久化配置(~/.zhiliao/config.json)
-├── game.ts             # 花园养成逻辑(等级/果实/心情)
-├── web.ts              # 网页服务(原生 http + SSE)
-├── web-static.ts       # 网页前端(纯 CSS 花园,零构建)
-├── tools/
-│   ├── types.ts        # 工具协议(万物皆插件的最小契约)
-│   └── builtin.ts      # 内置工具(bash/read/write/edit)
-├── ui/
-│   └── simple.tsx      # 终端花园界面(ink)
-└── plugins/
-    └── runtime.ts      # 插件运行时(Cordis: Context + Service)
-```
-
-## 开发
-
-```bash
-git clone <repo> && cd zhiliao
-npm install
-npm run build           # tsc 编译到 dist
-npm run dev             # 编译 + 运行
-node tests/mock-llm.mjs # (可选)端到端测试用 mock LLM
-```
-
-## 路线图
-
-- [ ] 插件 CLI(`zhiliao plugin add <npm包>` 安装第三方插件)
-- [ ] TUI 可视化(思考过程 + 工具时间线分屏)
-- [ ] 流式输出、MCP 支持、更多内置工具
-- [ ] 权限系统(工具调用前确认)
-
-## License
-
-MIT
+**License**: [MIT](LICENSE)

@@ -1,7 +1,7 @@
 {
   "name": "zhiliao",
   "version": "0.1.0",
-  "description": "知了 · 中文优先、轻量、带养成花园的终端 AI 编码 agent（万物皆插件）",
+  "description": "🍃 会养花园的中文 AI 编码 agent：万物皆插件、花园养成、本地模型、CLI+网页双界面",
   "type": "module",
   "bin": {
     "zhiliao": "dist/bin.js"
