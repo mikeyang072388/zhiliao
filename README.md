@@ -1,5 +1,7 @@
 <h1 align="center">🍃 知了 zhiliao</h1>
 
+<p align="center">🌏 <a href="README.en.md">English</a> · 中文</p>
+
 <p align="center">
   <b>会养花园的中文 AI 编码 agent</b><br>
   把编码变成一场养成游戏 —— 每个工具都是农具,每次成功都结一个果实 🍎
