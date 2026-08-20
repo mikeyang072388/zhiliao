@@ -10,6 +10,8 @@
 import { Command } from 'commander';
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import React from 'react';
 import { render } from 'ink';
 import { ZhiliaoRuntime } from './plugins/runtime.js';
@@ -41,10 +43,22 @@ program
     }
   });
 
+const USER_PLUGIN_DIR = () => join(homedir(), '.zhiliao', 'plugins');
+
+/** 加载用户插件目录并打印结果(CLI 与 web 共用) */
+async function loadUserPlugins(runtime: ZhiliaoRuntime): Promise<void> {
+  const results = await runtime.loadUserPlugins(USER_PLUGIN_DIR());
+  for (const r of results) {
+    if (r.ok) console.log(`[插件] ${r.name} 已加载(+${r.toolCount} 个工具)`);
+    else console.log(`[插件] ${r.file} 加载失败: ${r.error}`);
+  }
+}
+
 async function main(task: string | undefined, opts: Record<string, any>): Promise<void> {
   const runtime = new ZhiliaoRuntime();
   // 内置工具也是"插件"——万物皆插件的第一课
   await runtime.mountBuiltin({ name: 'builtin-core', tools: builtinTools });
+  await loadUserPlugins(runtime);
 
   if (opts.listPlugins) {
     console.log('已加载插件:');
@@ -139,6 +153,7 @@ webCmd
     const port = Number(opts.port ?? 3939);
     const runtime = new ZhiliaoRuntime();
     await runtime.mountBuiltin({ name: 'builtin-core', tools: builtinTools });
+    await loadUserPlugins(runtime);
     const cfg = resolveLlmConfig();
     const isLocal = /localhost|127\.0\.0\.1/.test(cfg.baseURL);
     if (!cfg.apiKey && !isLocal) {

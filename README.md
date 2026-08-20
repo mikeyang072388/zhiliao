@@ -74,6 +74,27 @@ export const myPlugin = {
 };
 ```
 
+### 🚀 开发你自己的插件(放个文件就生效)
+
+**不用改任何代码,不用重启工程**——把你的插件存到 `~/.zhiliao/plugins/` 目录:
+
+```bash
+mkdir -p ~/.zhiliao/plugins
+# 复制示例插件(项目里 examples/hello.plugin.js)
+cp node_modules/zhiliao/examples/hello.plugin.js ~/.zhiliao/plugins/hello.js
+
+# CLI:下次启动自动加载,立即可用
+zhiliao --list-plugins          # 能看到 hello 插件和 say_hello 工具
+
+# 网页:启动后侧边栏"🧩 插件"类目显示,点"↻ 重载"即时生效,不用重启服务
+zhiliao web
+```
+
+- **插件文件格式**:`export default { name, description?, apply(ctx) }`(JS 即可,无需 TS/构建)
+- **apply(ctx) 里能做什么**:`ctx.tools.register(...)` 注册工具;还能用 Cordis 的能力(服务、事件、生命周期)
+- **改完即生效**:网页侧边栏点"重载",或重启 CLI——工具列表立刻更新
+- **失败不炸**:某个插件写错了,只影响它自己,其他插件和内置工具照常
+
 ## 快速开始
 
 ```bash

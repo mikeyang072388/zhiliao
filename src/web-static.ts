@@ -32,6 +32,19 @@ export function renderPage(): string {
   .sess .m { font-size: 11px; opacity: .65; }
   .tools { padding: 4px 8px; font-size: 12px; opacity: .85; display: flex; flex-wrap: wrap; gap: 4px; }
   .tools span { background: rgba(255,255,255,.12); padding: 2px 7px; border-radius: 8px; }
+  .plugins { padding: 2px 8px 6px; display: flex; flex-direction: column; gap: 4px; }
+  .plug { background: rgba(255,255,255,.08); border-radius: 8px; padding: 5px 8px; font-size: 12px; line-height: 1.35; }
+  .plug .n { font-weight: 600; }
+  .plug .d { opacity: .7; font-size: 11px; }
+  .plug.bad { border-left: 3px solid #ff6d6d; }
+  .plug.good { border-left: 3px solid #aeea00; }
+  .mini { background: rgba(255,255,255,.16); border: none; color: #fff; border-radius: 8px; padding: 2px 8px; font-size: 11px; cursor: pointer; margin-left: 4px; vertical-align: 1px; }
+  .mini:hover { background: rgba(255,255,255,.3); }
+  .settings { padding: 2px 8px 8px; display: flex; flex-direction: column; gap: 5px; }
+  .settings input { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2); color: #fff; border-radius: 7px; padding: 6px 8px; font-size: 12px; outline: none; }
+  .settings input::placeholder { color: rgba(255,255,255,.55); }
+  .settings .mini { background: #aeea00; color: #1b5e20; padding: 6px; font-weight: 600; }
+  .sess-title { display: flex; align-items: center; }
   /* ── 主区 ── */
   .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
   .garden { position: relative; height: 170px; overflow: hidden; background: linear-gradient(#aee6ff 0%, #d9f2ff 55%, #7ec850 55%, #5da83f 100%); border-bottom: 4px solid #3e7d2a; }
@@ -80,10 +93,19 @@ export function renderPage(): string {
   <aside class="sidebar">
     <div class="brand">🍃 知了<small>蝉之园 · 中文优先编码 agent</small></div>
     <button id="newbtn">＋ 新会话</button>
-    <div class="sess-title">会话</div>
+    <div class="sess-title">💬 会话</div>
     <div class="sessions" id="sessions"></div>
-    <div class="sess-title">农具</div>
+    <div class="sess-title">🧩 插件 <button class="mini" id="reloadbtn" title="重新扫描 ~/.zhiliao/plugins/">↻ 重载</button></div>
+    <div class="plugins" id="plugins"></div>
+    <div class="sess-title">🛠 农具</div>
     <div class="tools" id="tools"></div>
+    <div class="sess-title">⚙️ 设置</div>
+    <div class="settings" id="settings">
+      <input id="cfgBase" placeholder="端点(默认 DeepSeek)">
+      <input id="cfgModel" placeholder="模型(默认 deepseek-chat)">
+      <input id="cfgKey" type="password" placeholder="API key(留空不改)">
+      <button class="mini" id="savecfg">保存设置</button>
+    </div>
   </aside>
 
   <!-- 主区 -->
@@ -271,8 +293,75 @@ export function renderPage(): string {
   $('input').addEventListener('keydown', (e) => { if (e.key === 'Enter') send(); });
   $('newbtn').addEventListener('click', newSession);
 
+  async function loadPlugins() {
+    const res = await fetch('/api/plugins');
+    const data = await res.json();
+    const box = $('plugins');
+    box.innerHTML = '';
+    for (const p of data.plugins) {
+      const el = document.createElement('div');
+      el.className = 'plug ' + (p.ok ? 'good' : 'bad');
+      el.innerHTML = '<div class="n">' + (p.ok ? '✅ ' : '❌ ') + p.name + (p.ok ? ' <span style="opacity:.6">+' + p.toolCount + ' 工具</span>' : '') + '</div>' + (p.description ? '<div class="d">' + p.description + '</div>' : '') + (p.error ? '<div class="d">' + p.error + '</div>' : '');
+      box.appendChild(el);
+    }
+    if (!data.plugins.length) {
+      box.innerHTML = '<div class="d" style="opacity:.6;font-size:11px;padding:2px 8px">放个 .js 到 ~/.zhiliao/plugins/ 试试</div>';
+    }
+  }
+
+  async function reloadPlugins() {
+    const btn = $('reloadbtn');
+    btn.textContent = '…';
+    btn.disabled = true;
+    try {
+      const res = await fetch('/api/plugins/reload', { method: 'POST' });
+      await res.json();
+      await loadPlugins();
+      await loadTools();
+      btn.textContent = '✓ 已重载';
+      setTimeout(() => { btn.textContent = '↻ 重载'; btn.disabled = false; }, 1200);
+    } catch (e) {
+      btn.textContent = '↻ 重载';
+      btn.disabled = false;
+    }
+  }
+
+  async function loadConfig() {
+    const res = await fetch('/api/config');
+    const c = await res.json();
+    $('cfgBase').value = c.baseURL || '';
+    $('cfgModel').value = c.model || '';
+    $('cfgKey').placeholder = c.hasKey ? 'API key 已设置(输入可更换)' : 'API key(必填)';
+  }
+
+  async function saveCfg() {
+    const btn = $('savecfg');
+    btn.textContent = '保存中…';
+    try {
+      const res = await fetch('/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          baseURL: $('cfgBase').value.trim() || undefined,
+          model: $('cfgModel').value.trim() || undefined,
+          apiKey: $('cfgKey').value.trim() || undefined,
+        }),
+      });
+      const d = await res.json();
+      btn.textContent = d.ok ? '✓ 已保存' : '✗ 失败';
+      $('cfgKey').value = '';
+      loadConfig();
+      setTimeout(() => { btn.textContent = '保存设置'; }, 1200);
+    } catch (e) { btn.textContent = '✗ 失败'; }
+  }
+
+  $('reloadbtn').addEventListener('click', reloadPlugins);
+  $('savecfg').addEventListener('click', saveCfg);
+
   // 初始化
   loadTools();
+  loadPlugins();
+  loadConfig();
   fetch('/api/garden').then((r) => r.json()).then((d) => {
     renderGarden(d.garden);
     addMsg('system', '欢迎回到蝉之园!花园 Lv.' + d.garden.level + ',说句话开始劳作吧。');

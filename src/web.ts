@@ -5,14 +5,17 @@
  * 支持多会话:侧边栏列出全部会话,可新建/切换,与 CLI 共享同一份数据。
  */
 import http from 'node:http';
+import { join } from 'node:path';
+import { homedir } from 'node:os';
 import type { ZhiliaoRuntime } from './plugins/runtime.js';
 import type { LlmConfig } from './llm.js';
 import { Session } from './session.js';
 import { runTurn } from './loop.js';
-import {
-  loadGarden, saveGarden, doChore, onChat, onFail, toolAction, expToNext,
-} from './game.js';
+import { loadGarden, saveGarden, doChore, onChat, onFail, toolAction, expToNext } from './game.js';
 import { renderPage } from './web-static.js';
+import { loadConfig, saveConfig, configPath } from './config.js';
+
+const userPluginDir = () => join(homedir(), '.zhiliao', 'plugins');
 
 export interface WebServerOptions {
   runtime: ZhiliaoRuntime;
@@ -42,7 +45,7 @@ export function startWebServer(opts: WebServerOptions): http.Server {
     return s;
   };
 
-  const server = http.createServer((req, res) => {
+  const server = http.createServer(async (req, res) => {
     const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
     const path = url.pathname;
     const json = (code: number, data: unknown) => {
@@ -83,6 +86,44 @@ export function startWebServer(opts: WebServerOptions): http.Server {
     if (path === '/api/tools' && req.method === 'GET') {
       json(200, {
         tools: runtime.listTools().map((t) => ({ name: t.name, icon: toolAction(t.name).icon, description: t.description })),
+      });
+      return;
+    }
+    if (path === '/api/plugins' && req.method === 'GET') {
+      json(200, {
+        plugins: runtime.getUserPluginInfos(),
+        builtin: runtime.loadedPlugins().filter((n) => !runtime.userPluginNamesList().includes(n)),
+      });
+      return;
+    }
+
+    if (path === '/api/plugins/reload' && req.method === 'POST') {
+      const plugins = await runtime.reloadUserPlugins(userPluginDir());
+      json(200, { plugins, builtin: runtime.loadedPlugins().filter((n) => !runtime.userPluginNamesList().includes(n)) });
+      return;
+    }
+
+    if (path === '/api/config' && req.method === 'GET') {
+      const c = loadConfig();
+      json(200, { baseURL: c.baseURL ?? '', model: c.model ?? '', hasKey: Boolean(c.apiKey), path: configPath() });
+      return;
+    }
+
+    if (path === '/api/config' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (c) => (body += c));
+      req.on('end', () => {
+        try {
+          const parsed = JSON.parse(body || '{}');
+          saveConfig({
+            apiKey: parsed.apiKey ? String(parsed.apiKey) : undefined,
+            baseURL: parsed.baseURL ? String(parsed.baseURL) : undefined,
+            model: parsed.model ? String(parsed.model) : undefined,
+          });
+          json(200, { ok: true });
+        } catch (err) {
+          json(400, { ok: false, error: String(err) });
+        }
       });
       return;
     }
