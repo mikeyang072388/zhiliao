@@ -75,6 +75,12 @@ export function renderPage(): string {
   .msg.tool .bubble { background: #fff8e1; border: 1px dashed #e6c35c; color: #8a6d1a; font-size: 13px; }
   .msg.system .bubble { background: transparent; color: #7a7a7a; font-size: 13px; padding: 2px 12px; }
   .typing { color: #999; font-size: 13px; padding: 4px 12px; }
+  .bubble pre { background: #f4f4f4; border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px; overflow-x: auto; font-size: 13px; line-height: 1.5; margin: 6px 0; }
+  .bubble code { background: #f4f4f4; border-radius: 4px; padding: 1px 5px; font-size: 13px; font-family: ui-monospace, monospace; }
+  .bubble pre code { background: none; padding: 0; }
+  .bubble h4 { margin: 8px 0 4px; font-size: 15px; }
+  .bubble li { margin-left: 20px; }
+  .bubble a { color: #2e7d32; }
   /* ── 状态栏 + 输入 ── */
   .status { background: #2e7d32; color: #fff; padding: 6px 14px; display: flex; align-items: center; gap: 14px; font-size: 13px; flex-wrap: wrap; }
   .expbar { width: 120px; height: 8px; background: rgba(255,255,255,.25); border-radius: 4px; overflow: hidden; }
@@ -147,6 +153,37 @@ export function renderPage(): string {
   const TREE = { 1: '🌱', 3: '🌿', 5: '🌳', 9: '🌳🌳' };
   let currentSessionId = null;
 
+  function escapeHtml(x) {
+    return String(x).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  // 轻量 Markdown 渲染(零依赖):代码块/标题/粗体/行内代码/列表/链接
+  function renderMarkdown(text) {
+    const lines = escapeHtml(text).split('\n');
+    let html = '';
+    let inCode = false;
+    let codeBuf = [];
+    for (const line of lines) {
+      if (line.trim().startsWith('\u0060\u0060\u0060')) {
+        if (inCode) { html += '<pre><code>' + codeBuf.join('\n') + '</code></pre>'; codeBuf = []; inCode = false; }
+        else inCode = true;
+        continue;
+      }
+      if (inCode) { codeBuf.push(line); continue; }
+      let l = line;
+      l = l.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      l = l.replace(/\u0060([^\u0060]+)\u0060/g, '<code>$1</code>');
+      l = l.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+      const h = l.match(/^(#{1,4})\s+(.*)/);
+      if (h) { html += '<h4>' + h[2] + '</h4>'; continue; }
+      if (/^[-*]\s+/.test(l)) { html += '<li>' + l.replace(/^[-*]\s+/, '') + '</li>'; continue; }
+      if (/^\d+\.\s+/.test(l)) { html += '<li>' + l.replace(/^\d+\.\s+/, '') + '</li>'; continue; }
+      html += '<div>' + (l || '&nbsp;') + '</div>';
+    }
+    if (inCode) html += '<pre><code>' + codeBuf.join('\n') + '</code></pre>';
+    return html;
+  }
+
   function scrollDown() { chat.scrollTop = chat.scrollHeight; }
 
   function addMsg(role, text) {
@@ -154,7 +191,7 @@ export function renderPage(): string {
     wrap.className = 'msg ' + role;
     const bubble = document.createElement('div');
     bubble.className = 'bubble';
-    if (role === 'assistant') bubble.textContent = '🍃 ' + text;
+    if (role === 'assistant') { bubble.dataset.raw = text; bubble.innerHTML = '🍃 ' + renderMarkdown(text); }
     else if (role === 'tool') bubble.textContent = '⚒️ ' + text;
     else bubble.textContent = text;
     wrap.appendChild(bubble);
@@ -273,7 +310,8 @@ export function renderPage(): string {
           else if (ev.type === 'system') addMsg('system', ev.text);
           else if (ev.type === 'delta') {
             if (!assistantBubble) { typing.remove(); assistantBubble = addMsg('assistant', ''); }
-            assistantBubble.textContent += ev.text;
+            assistantBubble.dataset.raw = (assistantBubble.dataset.raw ?? '') + ev.text;
+            assistantBubble.innerHTML = '🍃 ' + renderMarkdown(assistantBubble.dataset.raw);
             scrollDown();
           } else if (ev.type === 'state') renderGarden(ev.garden);
           else if (ev.type === 'error') { typing.remove(); addMsg('system', '🥀 ' + ev.text); }
